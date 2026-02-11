@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TamAi v3 - Full-Stack AI Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #333 #000;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #000;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 3px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #444;
+    }
+
+    body {
+      background-color: #000000;
+      color: #ffffff;
+    }
+
+    .thinking-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .chat-bubble {
+      border-radius: 12px;
+      padding: 12px 16px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .user-bubble {
+      background-color: #00aa00;
+      color: #000000;
+      margin-left: auto;
+      max-width: 70%;
+    }
+
+    .ai-bubble {
+      background-color: #1a1a1a;
+      color: #ffffff;
+      border: 1px solid #333;
+      margin-right: auto;
+      max-width: 70%;
+    }
+
+    .code-block {
+      background-color: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 12px;
+      overflow-x: auto;
+      position: relative;
+      margin: 8px 0;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background-color: #238636;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .copy-btn:hover {
+      background-color: #2ea043;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 50;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background-color: #0a0a0a;
+      margin: auto;
+      padding: 24px;
+      border: 1px solid #333;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .input-field {
+      background-color: #0a0a0a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: #ffffff;
+      width: 100%;
+      margin: 8px 0;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: #00aa00;
+      box-shadow: 0 0 0 3px rgba(0, 170, 0, 0.1);
+    }
+
+    .btn-primary {
+      background-color: #00aa00;
+      color: #000000;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background-color: #00cc00;
+    }
+
+    .btn-secondary {
+      background-color: #333;
+      color: #ffffff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background-color: #444;
+    }
+
+    @media (max-width: 768px) {
+      .user-bubble, .ai-bubble {
+        max-width: 85%;
+      }
+      .sidebar {
+        position: absolute;
+        left: -250px;
+        transition: left 0.3s ease;
+      }
+      .sidebar.open {
+        left: 0;
+      }
+    }
+  </style>
+</head>
+<body class="bg-black text-white">
+
+<!-- 🚪 LOGIN MODAL -->
+<div id="loginModal" class="modal show">
+  <div class="modal-content">
+    <h1 class="text-3xl font-bold mb-6 text-center">
+      <span class="text-green-500">TamAi</span> v3 🤖
+    </h1>
+    
+    <div class="mb-6">
+      <p class="text-gray-400 text-center mb-4">Selamat datang di TamAi v3</p>
+      
+      <!-- Google OAuth -->
+      <div id="googleSignInContainer" class="mb-4"></div>
+      
+      <div class="relative my-6">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-600"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-black text-gray-400">atau login dengan email</span>
+        </div>
+      </div>
+
+      <!-- Email Login -->
+      <input type="email" id="emailInput" class="input-field" placeholder="Masukkan email Anda">
+      <button id="sendOtpBtn" class="w-full btn-primary mt-4">Kirim OTP</button>
+    </div>
+
+    <!-- OTP Verification -->
+    <div id="otpSection" class="hidden">
+      <p class="text-gray-400 mb-4">Kode OTP telah dikirim ke email Anda</p>
+      <input type="text" id="otpInput" class="input-field" placeholder="Masukkan kode OTP 6 digit" maxlength="6">
+      <button id="verifyOtpBtn" class="w-full btn-primary mt-4">Verifikasi OTP</button>
+    </div>
+
+    <p class="text-xs text-gray-500 text-center mt-6">
+      Privacy & Security terjamin ✓
+    </p>
+  </div>
+</div>
+
+<!-- 📱 MAIN CHAT INTERFACE -->
+<div id="chatInterface" class="hidden h-screen flex">
+  
+  <!-- 📂 SIDEBAR -->
+  <div id="sidebar" class="w-64 bg-gray-950 border-r border-gray-800 flex flex-col">
+    <!-- New Chat Button -->
+    <button id="newChatBtn" class="m-4 btn-primary w-full">
+      ➕ Chat Baru
+    </button>
+
+    <!-- History Section -->
+    <div class="flex-1 overflow-y-auto px-4 py-4">
+      <h3 class="text-xs font-semibold text-gray-400 mb-3">📋 RIWAYAT</h3>
+      <div id="historyContainer" class="space-y-2">
+        <p class="text-xs text-gray-600">Belum ada riwayat chat</p>
+      </div>
+    </div>
+
+    <!-- Settings & Logout -->
+    <div class="border-t border-gray-800 p-4 space-y-2">
+      <button id="settingsBtn" class="w-full text-left px-4 py-2 bg-gray-900 hover:bg-gray-800 rounded text-sm">
+        ⚙️ Pengaturan
+      </button>
+      <button id="logoutBtn" class="w-full text-left px-4 py-2 bg-gray-900 hover:bg-gray-800 rounded text-sm text-red-400">
+        🚪 Logout
+      </button>
+    </div>
+  </div>
+
+  <!-- 💬 MAIN CHAT AREA -->
+  <div class="flex-1 flex flex-col">
+    
+    <!-- Header -->
+    <div class="border-b border-gray-800 p-4 flex justify-between items-center">
+      <div>
+        <h2 class="text-xl font-bold">
+          <span class="text-green-500">TamAi</span> v3
+        </h2>
+        <p id="headerUserName" class="text-xs text-gray-400">Pengguna</p>
+      </div>
+      <button id="sidebarToggle" class="md:hidden text-gray-400 hover:text-white">
+        ☰ Menu
+      </button>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="messagesContainer" class="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+      <div class="text-center text-gray-500">
+        <p class="text-2xl mb-2">👋</p>
+        <p>Halo, Tuan Tama! Siap untuk berdiskusi?</p>
+        <p class="text-xs text-gray-600 mt-2">Saya menggunakan Gemini 2.0 untuk chat cepat dan Claude 3.5 untuk coding</p>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="border-t border-gray-800 p-4 bg-gray-950">
+      <div class="flex gap-2">
+        <button id="attachFileBtn" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded text-xl">
+          📎
+        </button>
+        <input 
+          type="text" 
+          id="messageInput" 
+          class="input-field flex-1" 
+          placeholder="Ketikkan pesan atau tanyakan sesuatu..."
+          autocomplete="off"
+        >
+        <button id="sendBtn" class="px-6 py-2 btn-primary">
+          ➤
+        </button>
+      </div>
+      <div id="fileNameDisplay" class="text-xs text-gray-500 mt-2 hidden">
+        📎 <span id="attachedFileName">file.txt</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ⚙️ SETTINGS MODAL -->
+<div id="settingsModal" class="modal">
+  <div class="modal-content">
+    <h2 class="text-2xl font-bold mb-6">⚙️ Pengaturan</h2>
+    
+    <div class="mb-4">
+      <label class="block text-sm font-medium mb-2">📷 Foto Profil URL</label>
+      <input type="text" id="profilePhotoInput" class="input-field" placeholder="https://...">
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium mb-2">👤 Nama Pengguna</label>
+      <input type="text" id="usernameInput" class="input-field" placeholder="Nama Anda">
+    </div>
+
+    <div class="mb-6">
+      <label class="block text-sm font-medium mb-2">✨ Nama Tampilan</label>
+      <input type="text" id="displayNameInput" class="input-field" placeholder="Nama untuk ditampilkan">
+    </div>
+
+    <div class="flex gap-2">
+      <button id="savSettingsBtn" class="flex-1 btn-primary">Simpan</button>
+      <button id="closeSettingsBtn" class="flex-1 btn-secondary">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- 📁 FILE INPUT (Hidden) -->
+<input type="file" id="fileInput" accept=".txt,.js,.py,.html,.pdf" style="display: none;">
+
+<!-- ✋ Loading Overlay -->
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-30">
+  <div class="text-center">
+    <div class="text-4xl mb-4 thinking-pulse">🤔</div>
+    <p class="text-green-500 font-semibold">TamAi sedang berpikir...</p>
+  </div>
+</div>
+
+<script src="script.js" type="module"></script>
+</body>
+</html>
