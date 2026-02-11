@@ -143,23 +143,251 @@ app.post('/api/verify-otp', (req, res) => {
       return res.status(400).json({ error: 'OTP tidak sesuai' });
     }
 
+    // Hapus OTP dari storage
     otpStorage.delete(email);
+
+    // Ambil user data jika sudah terdaftar (dari registrasi)
+    let userData = null;
+    if (sessionStorage.has('users')) {
+      const users = sessionStorage.get('users');
+      const user = users.get(email);
+      if (user) {
+        user.verified = true;
+        users.set(email, user);
+        userData = user;
+      }
+    }
+
+    // Buat session token
+    const sessionToken = generateSessionToken();
+    const sessionData = {
+      email,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000 // 24 jam
+    };
+
+    // Tambahkan user data ke session jika ada
+    if (userData) {
+      sessionData.userId = userData.userId;
+      sessionData.username = userData.username;
+      sessionData.displayName = userData.displayName;
+      sessionData.profilePhoto = userData.profilePhoto;
+    }
+
+    sessionStorage.set(sessionToken, sessionData);
+
+    res.json({
+      success: true,
+      message: 'OTP terverifikasi',
+      sessionToken,
+      email,
+      userId: userData?.userId,
+      username: userData?.username,
+      displayName: userData?.displayName,
+      profilePhoto: userData?.profilePhoto
+    });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ error: 'Gagal memverifikasi OTP' });
+  }
+});
+
+// 👤 ENDPOINT: REGISTER USER
+app.post('/api/register', (req, res) => {
+  try {
+    const { username, email, password, displayName, profilePhoto } = req.body;
+
+    // Validasi input
+    if (!username || !email || !password || !displayName) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Semua field harus diisi' 
+      });
+    }
+
+    // Validasi format email
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Format email tidak valid' 
+      });
+    }
+
+    // Validasi password minimal 8 karakter
+    if (password.length < 8) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Password minimal 8 karakter' 
+      });
+    }
+
+    // Simpan data user sementara di sessionStorage
+    // Dalam praktik, gunakan database seperti MongoDB atau PostgreSQL
+    const userId = 'user_' + Date.now();
+    
+    // Simpan ke sessionStorage dengan email sebagai key
+    if (!sessionStorage.has('users')) {
+      sessionStorage.set('users', new Map());
+    }
+    const users = sessionStorage.get('users');
+    
+    // Cek apakah username sudah terdaftar
+    for (let [key, value] of users) {
+      if (value.username === username) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username sudah terdaftar' 
+        });
+      }
+    }
+
+    // Cek apakah email sudah terdaftar
+    if (users.has(email)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email sudah terdaftar' 
+      });
+    }
+
+    // Simpan user data
+    users.set(email, {
+      userId,
+      username,
+      email,
+      password, // Dalam praktik, hash password dengan bcrypt
+      displayName,
+      profilePhoto: profilePhoto || 'default-avatar.jpg',
+      createdAt: Date.now(),
+      verified: false // Akan true setelah OTP verifikasi
+    });
+
+    // Kirim OTP untuk verifikasi email
+    const otp = generateOTP();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 menit
+    otpStorage.set(email, { otp, expiresAt });
+
+    // Kirim email OTP
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'tamaidev.id@gmail.com',
+      to: email,
+      subject: '🤖 TamAi v3 - Kode OTP Verifikasi Pendaftaran',
+      html: `
+        <div style="font-family: Arial, sans-serif; background-color: #000000; padding: 20px; border-radius: 10px; color: #ffffff;">
+          <h2 style="color: #00ff00;">TamAi v3 🚀</h2>
+          <p>Halo ${displayName}!</p>
+          <p>Terima kasih telah mendaftar. Kode OTP Anda untuk verifikasi email adalah:</p>
+          <h1 style="color: #00ff00; font-size: 36px; letter-spacing: 2px; margin: 20px 0;">${otp}</h1>
+          <p>Kode ini berlaku selama 10 menit. Jangan bagikan dengan siapa pun.</p>
+          <p>Jika Anda tidak mendaftar akun ini, abaikan email ini.</p>
+          <hr style="border: 1px solid #333;">
+          <p style="font-size: 12px; color: #888;">TamAi v3 © 2024</p>
+        </div>
+      `
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Error sending registration OTP:', error);
+        return res.status(500).json({ 
+          success: false,
+          error: 'Gagal mengirim OTP ke email' 
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Pendaftaran berhasil. Silakan verifikasi email Anda dengan kode OTP yang telah dikirim',
+        userId,
+        email
+      });
+    });
+  } catch (error) {
+    console.error('Error in register:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Terjadi kesalahan saat pendaftaran' 
+    });
+  }
+});
+
+// 🔑 ENDPOINT: LOGIN USER
+app.post('/api/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validasi input
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email dan password harus diisi' 
+      });
+    }
+
+    // Ambil user dari storage
+    if (!sessionStorage.has('users')) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'User tidak ditemukan' 
+      });
+    }
+
+    const users = sessionStorage.get('users');
+    const user = users.get(email);
+
+    // Validasi user exists
+    if (!user) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Email atau password salah' 
+      });
+    }
+
+    // Validasi password
+    if (user.password !== password) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Email atau password salah' 
+      });
+    }
+
+    // Validasi email sudah verified
+    if (!user.verified) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Email belum diverifikasi. Silakan periksa email Anda untuk kode OTP' 
+      });
+    }
+
+    // Buat session token
     const sessionToken = generateSessionToken();
     sessionStorage.set(sessionToken, {
+      userId: user.userId,
       email,
+      username: user.username,
+      displayName: user.displayName,
+      profilePhoto: user.profilePhoto,
       createdAt: Date.now(),
       expiresAt: Date.now() + 24 * 60 * 60 * 1000 // 24 jam
     });
 
     res.json({
       success: true,
-      message: 'OTP terverifikasi',
+      message: 'Login berhasil',
       sessionToken,
-      email
+      user: {
+        userId: user.userId,
+        email: user.email,
+        username: user.username,
+        displayName: user.displayName,
+        profilePhoto: user.profilePhoto
+      }
     });
   } catch (error) {
-    console.error('Error verifying OTP:', error);
-    res.status(500).json({ error: 'Gagal memverifikasi OTP' });
+    console.error('Error in login:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Terjadi kesalahan saat login' 
+    });
   }
 });
 

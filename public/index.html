@@ -53,18 +53,20 @@
     }
 
     .user-bubble {
-      background-color: #00aa00;
+      background-color: #00f3ff;
       color: #000000;
       margin-left: auto;
       max-width: 70%;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
     }
 
     .ai-bubble {
-      background-color: #1a1a1a;
+      background-color: #0a0a1a;
       color: #ffffff;
-      border: 1px solid #333;
+      border: 1px solid #00f3ff;
       margin-right: auto;
       max-width: 70%;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.15);
     }
 
     .code-block {
@@ -122,33 +124,80 @@
     }
 
     .input-field {
-      background-color: #0a0a0a;
-      border: 1px solid #333;
+      background-color: #0a0a1a;
+      border: 1px solid #ffffff;
       border-radius: 6px;
       padding: 10px 12px;
       color: #ffffff;
       width: 100%;
       margin: 8px 0;
+      transition: all 0.3s ease;
     }
 
     .input-field:focus {
       outline: none;
-      border-color: #00aa00;
-      box-shadow: 0 0 0 3px rgba(0, 170, 0, 0.1);
+      border-color: #00f3ff;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.5), inset 0 0 10px rgba(0, 243, 255, 0.1);
+    }
+
+    .input-field::placeholder {
+      color: #666;
+    }
+
+    .otp-input {
+      background-color: #0a0a1a;
+      border: 2px solid #ffffff;
+      border-radius: 8px;
+      color: #ffffff;
+      transition: all 0.2s;
+    }
+
+    .otp-input:focus {
+      outline: none;
+      border-color: #00f3ff;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+    }
+
+    .avatar-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+      background-color: #0a0a1a;
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .avatar-btn.selected {
+      border-color: #00f3ff;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.8), inset 0 0 10px rgba(0, 243, 255, 0.2);
+      background-color: rgba(0, 243, 255, 0.1);
+    }
+    
+    .avatar-btn:hover {
+      border-color: #00f3ff;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
     }
 
     .btn-primary {
-      background-color: #00aa00;
+      background-color: #00f3ff;
       color: #000000;
       padding: 10px 20px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
     }
 
     .btn-primary:hover {
-      background-color: #00cc00;
+      background-color: #00ffff;
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.8);
+      transform: translateY(-2px);
     }
 
     .btn-secondary {
@@ -162,6 +211,74 @@
 
     .btn-secondary:hover {
       background-color: #444;
+    }
+
+    /* Google Sign-In Button */
+    #googleSignInBtn {
+      transition: all 0.3s ease;
+    }
+
+    #googleSignInBtn:hover {
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.6), inset 0 0 15px rgba(0, 243, 255, 0.1);
+      background-color: rgba(0, 243, 255, 0.1);
+    }
+
+    #googleSignInBtn:active {
+      transform: scale(0.98);
+    }
+
+    /* Mode Switch Styles */
+    #modeBtn {
+      position: relative;
+    }
+
+    #modeBtn::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 6px;
+      height: 6px;
+      background-color: #00f3ff;
+      border-radius: 50%;
+    }
+
+    /* History Item Styles */
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background-color: rgba(0, 243, 255, 0.05);
+      border-left: 2px solid transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .history-item:hover {
+      background-color: rgba(0, 243, 255, 0.1);
+      border-left-color: #00f3ff;
+    }
+
+    .history-item.active {
+      background-color: rgba(0, 243, 255, 0.15);
+      border-left-color: #00f3ff;
+    }
+
+    .history-title {
+      flex: 1;
+      font-size: 0.85rem;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-time {
+      font-size: 0.7rem;
+      color: #888;
+      margin-left: 8px;
     }
 
     @media (max-width: 768px) {
@@ -181,43 +298,182 @@
 </head>
 <body class="bg-black text-white">
 
-<!-- 🚪 LOGIN MODAL -->
-<div id="loginModal" class="modal show">
-  <div class="modal-content">
-    <h1 class="text-3xl font-bold mb-6 text-center">
-      <span class="text-green-500">TamAi</span> v3 🤖
-    </h1>
-    
-    <div class="mb-6">
-      <p class="text-gray-400 text-center mb-4">Selamat datang di TamAi v3</p>
-      
-      <!-- Google OAuth -->
-      <div id="googleSignInContainer" class="mb-4"></div>
-      
-      <div class="relative my-6">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-gray-600"></div>
-        </div>
-        <div class="relative flex justify-center text-sm">
-          <span class="px-2 bg-black text-gray-400">atau login dengan email</span>
+<!-- 🚪 LOGIN/REGISTER MODAL -->
+<div id="authModal" class="fixed inset-0 bg-gradient-to-br from-gray-950 via-black to-gray-950 flex items-center justify-center z-50">
+  <!-- Left Side - Brand & Info -->
+  <div class="hidden lg:flex w-1/2 flex-col justify-center items-start px-20">
+    <div class="mb-12">
+      <h1 class="text-6xl font-bold mb-4">
+        <span class="text-cyan-400">TamAi</span> v3
+      </h1>
+      <p class="text-2xl text-gray-400 font-light">AI Chat Cerdas</p>
+      <p class="text-gray-500 mt-4 text-lg">Streaming AI responses dengan Gemini & Claude</p>
+    </div>
+
+    <div class="space-y-6 text-gray-400">
+      <div class="flex items-start gap-4">
+        <div class="text-cyan-400 text-2xl mt-1">🤖</div>
+        <div>
+          <p class="font-semibold text-white">Dual AI Models</p>
+          <p class="text-sm text-gray-500">Gemini untuk chat, Claude untuk coding</p>
         </div>
       </div>
-
-      <!-- Email Login -->
-      <input type="email" id="emailInput" class="input-field" placeholder="Masukkan email Anda">
-      <button id="sendOtpBtn" class="w-full btn-primary mt-4">Kirim OTP</button>
+      <div class="flex items-start gap-4">
+        <div class="text-cyan-400 text-2xl mt-1">💬</div>
+        <div>
+          <p class="font-semibold text-white">Real-time Streaming</p>
+          <p class="text-sm text-gray-500">Response langsung tanpa delay</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-4">
+        <div class="text-cyan-400 text-2xl mt-1">📎</div>
+        <div>
+          <p class="font-semibold text-white">File Attachment</p>
+          <p class="text-sm text-gray-500">Attach .js, .py, .html, .txt, .pdf</p>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- OTP Verification -->
-    <div id="otpSection" class="hidden">
-      <p class="text-gray-400 mb-4">Kode OTP telah dikirim ke email Anda</p>
-      <input type="text" id="otpInput" class="input-field" placeholder="Masukkan kode OTP 6 digit" maxlength="6">
-      <button id="verifyOtpBtn" class="w-full btn-primary mt-4">Verifikasi OTP</button>
+  <!-- Right Side - Auth Form -->
+  <div class="w-full lg:w-1/2 px-4 lg:px-20 py-12">
+    <div class="max-w-md mx-auto">
+      <!-- Login Form -->
+      <div id="loginForm" class="space-y-6">
+        <div>
+          <h2 class="text-3xl font-bold text-white mb-2">Masuk</h2>
+          <p class="text-gray-500">Lanjutkan ke TamAi v3</p>
+        </div>
+
+        <!-- Google OAuth -->
+        <button id="googleSignInBtn" class="w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-3 transition-all duration-300" style="background-color: #000; border: 2px solid #00f3ff; color: #00f3ff; hover: box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#00f3ff" opacity="0.8"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#00f3ff" opacity="0.8"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#00f3ff" opacity="0.8"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#00f3ff" opacity="0.8"/>
+          </svg>
+          Masuk dengan Google
+        </button>
+
+        <div class="relative">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-700"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-2 bg-black text-gray-400">atau email</span>
+          </div>
+        </div>
+
+        <!-- Email Login -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+          <input type="email" id="loginEmailInput" class="input-field" placeholder="Masukkan email Anda">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+          <input type="password" id="loginPasswordInput" class="input-field" placeholder="Minimal 8 karakter">
+        </div>
+
+        <button id="loginBtn" class="w-full btn-primary py-3 font-semibold">Masuk</button>
+
+        <p class="text-center text-gray-400">
+          Belum punya akun? 
+          <button id="switchToRegisterBtn" class="text-cyan-400 hover:text-cyan-300 font-semibold">Daftar</button>
+        </p>
+      </div>
+
+      <!-- Register Form -->
+      <div id="registerForm" class="hidden space-y-6">
+        <div>
+          <h2 class="text-3xl font-bold text-white mb-2">Buat Akun</h2>
+          <p class="text-gray-500">Bergabung dengan TamAi v3</p>
+        </div>
+
+        <!-- Username -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Username <span class="text-red-500">*</span></label>
+          <div class="flex items-center">
+            <span class="text-gray-400">@</span>
+            <input type="text" id="registerUsername" class="input-field flex-1" placeholder="username (unik)" pattern="[a-zA-Z0-9_-]+">
+          </div>
+          <p id="usernameStatus" class="text-xs text-gray-500 mt-1"></p>
+        </div>
+
+        <!-- Display Name -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Nama Tampilan</label>
+          <input type="text" id="registerDisplayName" class="input-field" placeholder="Nama asli atau panggilan">
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Email <span class="text-red-500">*</span></label>
+          <input type="email" id="registerEmail" class="input-field" placeholder="email@example.com">
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Password <span class="text-red-500">*</span></label>
+          <input type="password" id="registerPassword" class="input-field" placeholder="Minimal 8 karakter">
+          <p class="text-xs text-gray-500 mt-1">Minimal 8 karakter, gunakan kombinasi huruf dan angka</p>
+        </div>
+
+        <!-- Profile Photo -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Foto Profil</label>
+          <div class="flex gap-4">
+            <div id="avatarContainer" class="flex gap-2 flex-wrap">
+              <button type="button" class="avatar-btn w-12 h-12 rounded-full bg-blue-600 hover:ring-2 ring-cyan-400" data-avatar="👨‍💻">👨‍💻</button>
+              <button type="button" class="avatar-btn w-12 h-12 rounded-full bg-purple-600 hover:ring-2 ring-cyan-400" data-avatar="👩‍💻">👩‍💻</button>
+              <button type="button" class="avatar-btn w-12 h-12 rounded-full bg-green-600 hover:ring-2 ring-cyan-400" data-avatar="🤖">🤖</button>
+              <button type="button" class="avatar-btn w-12 h-12 rounded-full bg-yellow-600 hover:ring-2 ring-cyan-400" data-avatar="👨‍🚀">👨‍🚀</button>
+              <button type="button" class="avatar-btn w-12 h-12 rounded-full bg-pink-600 hover:ring-2 ring-cyan-400" data-avatar="👩‍🚀">👩‍🚀</button>
+            </div>
+          </div>
+          <input type="hidden" id="registerAvatar" value="👨‍💻">
+          <p class="text-xs text-gray-500 mt-2">Atau upload foto: <input type="file" id="registerPhotoFile" accept="image/*" class="text-xs"></p>
+        </div>
+
+        <button id="registerBtn" class="w-full btn-primary py-3 font-semibold">Buat Akun</button>
+
+        <p class="text-center text-gray-400">
+          Sudah punya akun? 
+          <button id="switchToLoginBtn" class="text-cyan-400 hover:text-cyan-300 font-semibold">Masuk</button>
+        </p>
+      </div>
+
+      <!-- OTP Verification Form -->
+      <div id="otpForm" class="hidden space-y-6">
+        <div>
+          <h2 class="text-3xl font-bold text-white mb-2">Verifikasi OTP</h2>
+          <p class="text-gray-500">Kode telah dikirim ke email Anda</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-4">Masukkan Kode 6 Digit</label>
+          <div class="flex justify-center gap-2 mb-6">
+            <input type="text" class="otp-input w-12 h-12 text-center text-2xl font-bold" maxlength="1">
+            <input type="text" class="otp-input w-12 h-12 text-center text-2xl font-bold" maxlength="1">
+            <input type="text" class="otp-input w-12 h-12 text-center text-2xl font-bold" maxlength="1">
+            <input type="text" class="otp-input w-12 h-12 text-center text-2xl font-bold" maxlength="1">
+            <input type="text" class="otp-input w-12 h-12 text-center text-2xl font-bold" maxlength="1">
+            <input type="text" class="otp-input w-12 h-12 text-center text-2xl font-bold" maxlength="1">
+          </div>
+          <input type="hidden" id="otpCode">
+        </div>
+
+        <button id="verifyOtpBtn" class="w-full btn-primary py-3 font-semibold">Verifikasi</button>
+
+        <div class="text-center">
+          <p class="text-gray-400 text-sm">Tidak menerima kode? 
+            <button id="resendOtpBtn" class="text-cyan-400 hover:text-cyan-300 font-semibold">Kirim Ulang</button>
+          </p>
+          <p id="otpTimer" class="text-gray-500 text-xs mt-2"></p>
+        </div>
+      </div>
     </div>
-
-    <p class="text-xs text-gray-500 text-center mt-6">
-      Privacy & Security terjamin ✓
-    </p>
   </div>
 </div>
 
@@ -257,7 +513,7 @@
     <div class="border-b border-gray-800 p-4 flex justify-between items-center">
       <div>
         <h2 class="text-xl font-bold">
-          <span class="text-green-500">TamAi</span> v3
+          <span class="text-cyan-400">TamAi</span> v3
         </h2>
         <p id="headerUserName" class="text-xs text-gray-400">Pengguna</p>
       </div>
@@ -278,6 +534,9 @@
     <!-- Input Area -->
     <div class="border-t border-gray-800 p-4 bg-gray-950">
       <div class="flex gap-2">
+        <button id="modeBtn" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-lg border border-cyan-400 border-opacity-30 hover:border-opacity-100 transition" title="Mode: Chat">
+          💭
+        </button>
         <button id="attachFileBtn" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded text-xl">
           📎
         </button>
@@ -305,26 +564,84 @@
     <h2 class="text-2xl font-bold mb-6">⚙️ Pengaturan</h2>
     
     <div class="mb-4">
-      <label class="block text-sm font-medium mb-2">📷 Foto Profil URL</label>
-      <input type="text" id="profilePhotoInput" class="input-field" placeholder="https://...">
+      <label class="block text-sm font-medium mb-2">� Username (Read-only)</label>
+      <div class="relative">
+        <input type="text" id="usernameInput" class="input-field bg-gray-800 text-gray-500 cursor-not-allowed border-gray-700" readonly>
+        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+          <svg class="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
+        </div>
+      </div>
+      <p class="text-xs text-gray-600 mt-1">🔒 Username tidak dapat diubah (permanen)</p>
     </div>
 
     <div class="mb-4">
-      <label class="block text-sm font-medium mb-2">👤 Nama Pengguna</label>
-      <input type="text" id="usernameInput" class="input-field" placeholder="Nama Anda">
+      <label class="block text-sm font-medium mb-2">✨ Display Name</label>
+      <input type="text" id="displayNameInput" class="input-field" placeholder="Nama untuk ditampilkan di chat">
+      <p class="text-xs text-gray-500 mt-1">Bisa diubah kapan saja</p>
     </div>
 
-    <div class="mb-6">
-      <label class="block text-sm font-medium mb-2">✨ Nama Tampilan</label>
-      <input type="text" id="displayNameInput" class="input-field" placeholder="Nama untuk ditampilkan">
+    <div class="mb-4">
+      <label class="block text-sm font-medium mb-2">📷 Foto Profil</label>
+      <div class="mb-3">
+        <div id="profilePhotoPreview" class="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center text-3xl border-2 border-cyan-400 mb-2">👨‍💻</div>
+      </div>
+      <div class="flex gap-2 mb-3">
+        <div class="flex-1">
+          <input type="file" id="profilePhotoFile" accept="image/*" class="input-field text-xs">
+          <p class="text-xs text-gray-600 mt-1">Max 5MB (JPG, PNG)</p>
+        </div>
+        <button id="uploadPhotoBtn" class="btn-primary px-4 whitespace-nowrap">Upload</button>
+      </div>
+      <div class="border-t border-gray-700 pt-3">
+        <p class="text-xs text-gray-400 mb-2">Atau pilih emoji:</p>
+        <div class="flex gap-2 flex-wrap">
+          <button type="button" class="emoji-select w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded text-xl border border-gray-700 hover:border-cyan-400 transition" data-emoji="👨‍💻">👨‍💻</button>
+          <button type="button" class="emoji-select w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded text-xl border border-gray-700 hover:border-cyan-400 transition" data-emoji="👩‍💻">👩‍💻</button>
+          <button type="button" class="emoji-select w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded text-xl border border-gray-700 hover:border-cyan-400 transition" data-emoji="🤖">🤖</button>
+          <button type="button" class="emoji-select w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded text-xl border border-gray-700 hover:border-cyan-400 transition" data-emoji="👨‍🚀">👨‍🚀</button>
+          <button type="button" class="emoji-select w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded text-xl border border-gray-700 hover:border-cyan-400 transition" data-emoji="👩‍🚀">👩‍🚀</button>
+          <button type="button" class="emoji-select w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded text-xl border border-gray-700 hover:border-cyan-400 transition" data-emoji="🧠">🧠</button>
+          <button type="button" class="emoji-select w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded text-xl border border-gray-700 hover:border-cyan-400 transition" data-emoji="⚡">⚡</button>
+          <button type="button" class="emoji-select w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded text-xl border border-gray-700 hover:border-cyan-400 transition" data-emoji="🎯">🎯</button>
+        </div>
+      </div>
+      <input type="hidden" id="profilePhotoInput">
     </div>
 
-    <div class="flex gap-2">
-      <button id="savSettingsBtn" class="flex-1 btn-primary">Simpan</button>
-      <button id="closeSettingsBtn" class="flex-1 btn-secondary">Batal</button>
+    <div class="space-y-2">
+      <button id="savSettingsBtn" class="w-full btn-primary py-2">💾 Simpan Perubahan</button>
+      <button id="closeSettingsBtn" class="w-full btn-secondary py-2">❌ Batal</button>
     </div>
   </div>
 </div>
+
+<!-- 🎯 MODE SELECTOR MODAL -->
+<div id="modeModal" class="modal">
+  <div class="modal-content max-w-sm">
+    <h2 class="text-2xl font-bold mb-6">📝 Pilih Mode Respons</h2>
+    
+    <div class="space-y-3">
+      <button id="mode-thinking" class="w-full p-4 border-2 border-gray-700 hover:border-cyan-400 rounded-lg text-left transition">
+        <div class="font-semibold">💭 Thinking</div>
+        <p class="text-xs text-gray-500">Jawaban reflektif dan mendalam</p>
+      </button>
+      <button id="mode-complex" class="w-full p-4 border-2 border-gray-700 hover:border-cyan-400 rounded-lg text-left transition">
+        <div class="font-semibold">🔍 Complex</div>
+        <p class="text-xs text-gray-500">Analisis mendalam dengan detail lengkap</p>
+      </button>
+      <button id="mode-coding" class="w-full p-4 border-2 border-gray-700 hover:border-cyan-400 rounded-lg text-left transition">
+        <div class="font-semibold">💻 Coding</div>
+        <p class="text-xs text-gray-500">Fokus pada blok kode yang rapi</p>
+      </button>
+      <button id="mode-chat" class="w-full p-4 border-2 border-cyan-400 rounded-lg text-left transition bg-gray-900">
+        <div class="font-semibold">💬 Chat (Default)</div>
+        <p class="text-xs text-gray-500">Respons cepat dan natural</p>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ⚙️ SETTINGS MODAL (OLD) -->
 
 <!-- 📁 FILE INPUT (Hidden) -->
 <input type="file" id="fileInput" accept=".txt,.js,.py,.html,.pdf" style="display: none;">
@@ -333,7 +650,7 @@
 <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-30">
   <div class="text-center">
     <div class="text-4xl mb-4 thinking-pulse">🤔</div>
-    <p class="text-green-500 font-semibold">TamAi sedang berpikir...</p>
+    <p class="text-cyan-400 font-semibold">TamAi sedang berpikir...</p>
   </div>
 </div>
 

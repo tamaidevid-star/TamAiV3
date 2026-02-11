@@ -4,25 +4,58 @@ const state = {
   userEmail: localStorage.getItem('userEmail'),
   userName: localStorage.getItem('userName') || 'Tuan Tama',
   displayName: localStorage.getItem('displayName') || 'Tuan Tama',
-  profilePhoto: localStorage.getItem('profilePhoto') || 'https://ui-avatars.com/api/?name=Tuan+Tama&background=000&color=00aa00',
+  profilePhoto: localStorage.getItem('profilePhoto') || '👨‍💻',
+  userId: localStorage.getItem('userId'),
   conversations: JSON.parse(localStorage.getItem('conversations')) || {},
   currentConversationId: localStorage.getItem('currentConversationId') || null,
-  attachedFile: null
+  attachedFile: null,
+  authMode: 'login', // login, register, otp
+  registerEmail: null,
+  registerUsername: null,
+  responseMode: 'chat', // chat, thinking, complex, coding
+  conversationTitles: JSON.parse(localStorage.getItem('conversationTitles')) || {}
 };
 
 // 🔗 DOM ELEMENTS
-const loginModal = document.getElementById('loginModal');
+const authModal = document.getElementById('authModal');
 const chatInterface = document.getElementById('chatInterface');
-const emailInput = document.getElementById('emailInput');
-const sendOtpBtn = document.getElementById('sendOtpBtn');
-const otpSection = document.getElementById('otpSection');
-const otpInput = document.getElementById('otpInput');
+
+// Auth Forms
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const otpForm = document.getElementById('otpForm');
+
+// Login Elements
+const loginEmailInput = document.getElementById('loginEmailInput');
+const loginPasswordInput = document.getElementById('loginPasswordInput');
+const loginBtn = document.getElementById('loginBtn');
+const switchToRegisterBtn = document.getElementById('switchToRegisterBtn');
+
+// Register Elements
+const registerUsername = document.getElementById('registerUsername');
+const registerDisplayName = document.getElementById('registerDisplayName');
+const registerEmail = document.getElementById('registerEmail');
+const registerPassword = document.getElementById('registerPassword');
+const registerBtn = document.getElementById('registerBtn');
+const registerAvatar = document.getElementById('registerAvatar');
+const registerPhotoFile = document.getElementById('registerPhotoFile');
+const switchToLoginBtn = document.getElementById('switchToLoginBtn');
+const avatarButtons = document.querySelectorAll('.avatar-btn');
+
+// OTP Elements
 const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+const resendOtpBtn = document.getElementById('resendOtpBtn');
+const otpCode = document.getElementById('otpCode');
+const otpInputs = document.querySelectorAll('.otp-input');
+
+// Chat Elements
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
 const messagesContainer = document.getElementById('messagesContainer');
 const attachFileBtn = document.getElementById('attachFileBtn');
 const fileInput = document.getElementById('fileInput');
+const modeBtn = document.getElementById('modeBtn');
+const modeModal = document.getElementById('modeModal');
 const newChatBtn = document.getElementById('newChatBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const settingsBtn = document.getElementById('settingsBtn');
@@ -36,6 +69,13 @@ const historyContainer = document.getElementById('historyContainer');
 const loadingOverlay = document.getElementById('loadingOverlay');
 const fileNameDisplay = document.getElementById('fileNameDisplay');
 const attachedFileName = document.getElementById('attachedFileName');
+const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+const profilePhotoFile = document.getElementById('profilePhotoFile');
+const profilePhotoInput = document.getElementById('profilePhotoInput');
+const modeThinkingBtn = document.getElementById('mode-thinking');
+const modeComplexBtn = document.getElementById('mode-complex');
+const modeCodingBtn = document.getElementById('mode-coding');
+const modeChatBtn = document.getElementById('mode-chat');
 
 // 🎯 INITIALIZE APP
 function initializeApp() {
@@ -43,8 +83,47 @@ function initializeApp() {
     showChatInterface();
     renderConversationHistory();
     loadLatestConversation();
+  } else {
+    showAuthModal();
   }
 }
+
+// 🔀 AUTH TAB SWITCHING
+switchToRegisterBtn.addEventListener('click', () => {
+  loginForm.classList.add('hidden');
+  registerForm.classList.remove('hidden');
+  state.authMode = 'register';
+});
+
+switchToLoginBtn.addEventListener('click', () => {
+  registerForm.classList.add('hidden');
+  loginForm.classList.remove('hidden');
+  state.authMode = 'login';
+});
+
+// 🎨 AVATAR SELECTION
+avatarButtons.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    avatarButtons.forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    registerAvatar.value = btn.dataset.avatar;
+  });
+});
+
+// Set default avatar
+avatarButtons[0].classList.add('selected');
+
+// 📸 PHOTO FILE UPLOAD
+registerPhotoFile.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      registerAvatar.value = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+});
 
 // 🔐 GOOGLE OAUTH SETUP
 function setupGoogleOAuth() {
@@ -53,14 +132,22 @@ function setupGoogleOAuth() {
     callback: handleGoogleSignIn
   });
 
-  window.google.accounts.id.renderButton(
-    document.getElementById('googleSignInContainer'),
-    {
-      theme: 'dark',
-      size: 'large',
-      width: '100%'
-    }
-  );
+  // Add click handler to custom Google button
+  document.getElementById('googleSignInBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        window.google.accounts.id.renderButton(
+          document.getElementById('googleSignInBtn'),
+          {
+            theme: 'dark',
+            size: 'large',
+            width: '100%'
+          }
+        );
+      }
+    });
+  });
 }
 
 // 📧 GOOGLE SIGN-IN HANDLER
@@ -82,50 +169,161 @@ async function handleGoogleSignIn(response) {
   }
 }
 
-// 📧 SEND OTP
-sendOtpBtn.addEventListener('click', async () => {
-  const email = emailInput.value.trim();
+// 📧 LOGIN
+loginBtn.addEventListener('click', async () => {
+  const email = loginEmailInput.value.trim();
+  const password = loginPasswordInput.value.trim();
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    alert('Masukkan email yang valid');
+    alert('❌ Email tidak valid');
     return;
   }
 
-  sendOtpBtn.disabled = true;
-  sendOtpBtn.textContent = '⏳ Mengirim...';
+  if (!password || password.length < 8) {
+    alert('❌ Password minimal 8 karakter');
+    return;
+  }
+
+  loginBtn.disabled = true;
+  loginBtn.textContent = '⏳ Masuk...';
 
   try {
-    const response = await fetch('/api/send-otp', {
+    const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, password })
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      state.userEmail = email;
-      otpSection.classList.remove('hidden');
-      sendOtpBtn.textContent = 'Kirim OTP';
-      alert('✅ OTP telah dikirim ke email Anda!');
-      otpInput.focus();
+      state.sessionToken = data.sessionToken;
+      state.userEmail = data.user.email;
+      state.userName = data.user.username;
+      state.displayName = data.user.displayName;
+      state.profilePhoto = data.user.profilePhoto;
+      state.userId = data.user.userId;
+      
+      createSession();
+      showChatInterface();
+      alert('✅ Login berhasil!');
     } else {
       alert('❌ ' + data.error);
     }
   } catch (error) {
-    console.error('Error sending OTP:', error);
-    alert('Gagal mengirim OTP');
+    console.error('Login error:', error);
+    alert('❌ Gagal login');
   } finally {
-    sendOtpBtn.disabled = false;
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Masuk';
   }
 });
 
-// ✅ VERIFY OTP
+// 📝 REGISTER
+registerBtn.addEventListener('click', async () => {
+  const username = registerUsername.value.trim().toLowerCase();
+  const displayName = registerDisplayName.value.trim() || username;
+  const email = registerEmail.value.trim();
+  const password = registerPassword.value.trim();
+  const avatar = registerAvatar.value;
+
+  if (!username || !/^[a-zA-Z0-9_-]+$/.test(username)) {
+    alert('❌ Username hanya alphanumeric, underscore, dan dash');
+    return;
+  }
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    alert('❌ Email tidak valid');
+    return;
+  }
+
+  if (!password || password.length < 8) {
+    alert('❌ Password minimal 8 karakter');
+    return;
+  }
+
+  registerBtn.disabled = true;
+  registerBtn.textContent = '⏳ Membuat akun...';
+
+  try {
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username,
+        displayName,
+        email,
+        password,
+        profilePhoto: avatar
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      state.registerEmail = email;
+      state.registerUsername = username;
+      state.displayName = displayName;
+      state.profilePhoto = avatar;
+      
+      loginForm.classList.add('hidden');
+      registerForm.classList.add('hidden');
+      otpForm.classList.remove('hidden');
+      
+      alert('✅ Akun dibuat! Kode OTP terkirim ke email Anda');
+      otpInputs[0].focus();
+    } else {
+      alert('❌ ' + data.error);
+    }
+  } catch (error) {
+    console.error('Register error:', error);
+    alert('❌ Gagal membuat akun');
+  } finally {
+    registerBtn.disabled = false;
+    registerBtn.textContent = 'Buat Akun';
+  }
+});
+
+// 🔢 OTP INPUT HANDLING
+otpInputs.forEach((input, index) => {
+  input.addEventListener('input', (e) => {
+    if (e.target.value.length === 1) {
+      if (index < otpInputs.length - 1) {
+        otpInputs[index + 1].focus();
+      }
+    }
+    updateOtpCode();
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && !e.target.value && index > 0) {
+      otpInputs[index - 1].focus();
+    }
+  });
+
+  input.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const paste = (e.clipboardData || window.clipboardData).getData('text');
+    paste.split('').forEach((char, i) => {
+      if (i < otpInputs.length) {
+        otpInputs[i].value = char;
+      }
+    });
+    updateOtpCode();
+  });
+});
+
+function updateOtpCode() {
+  const code = Array.from(otpInputs).map(input => input.value).join('');
+  otpCode.value = code;
+}
+
+// ✅ VERIFY OTP (Register)
 verifyOtpBtn.addEventListener('click', async () => {
-  const otp = otpInput.value.trim();
+  const otp = otpCode.value.trim();
 
   if (otp.length !== 6 || !/^\d+$/.test(otp)) {
-    alert('Kode OTP harus 6 angka');
+    alert('❌ Kode OTP harus 6 angka');
     return;
   }
 
@@ -137,7 +335,8 @@ verifyOtpBtn.addEventListener('click', async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: state.userEmail,
+        email: state.registerEmail,
+        username: state.registerUsername,
         otp: otp
       })
     });
@@ -146,20 +345,48 @@ verifyOtpBtn.addEventListener('click', async () => {
 
     if (response.ok) {
       state.sessionToken = data.sessionToken;
-      state.userName = state.userEmail.split('@')[0];
-      state.displayName = state.userName;
+      state.userEmail = data.email;
+      state.userName = data.username || state.registerUsername;
+      state.displayName = data.displayName || state.displayName;
+      state.profilePhoto = data.profilePhoto || state.profilePhoto;
+      state.userId = data.userId;
       
       createSession();
       showChatInterface();
-      alert('✅ Login berhasil!');
+      alert('✅ Email terverifikasi! Selamat datang!');
     } else {
       alert('❌ ' + data.error);
     }
   } catch (error) {
-    console.error('Error verifying OTP:', error);
-    alert('Gagal memverifikasi OTP');
+    console.error('OTP verification error:', error);
+    alert('❌ Gagal memverifikasi OTP');
   } finally {
     verifyOtpBtn.disabled = false;
+    verifyOtpBtn.textContent = 'Verifikasi';
+  }
+});
+
+// 🔄 RESEND OTP
+resendOtpBtn.addEventListener('click', async () => {
+  try {
+    const response = await fetch('/api/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: state.registerEmail })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert('✅ OTP terkirim kembali!');
+      otpInputs.forEach(input => input.value = '');
+      otpInputs[0].focus();
+    } else {
+      alert('❌ ' + data.error);
+    }
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    alert('❌ Gagal mengirim ulang OTP');
   }
 });
 
@@ -170,12 +397,13 @@ function createSession() {
   localStorage.setItem('userName', state.userName);
   localStorage.setItem('displayName', state.displayName);
   localStorage.setItem('profilePhoto', state.profilePhoto);
+  localStorage.setItem('userId', state.userId);
   updateUI();
 }
 
 // 🖼️ UPDATE UI WITH USER DATA
 function updateUI() {
-  headerUserName.textContent = `${state.displayName} (${state.userEmail})`;
+  headerUserName.textContent = `${state.displayName} (@${state.userName})`;
   document.getElementById('usernameInput').value = state.userName;
   document.getElementById('displayNameInput').value = state.displayName;
   document.getElementById('profilePhotoInput').value = state.profilePhoto;
@@ -183,9 +411,18 @@ function updateUI() {
 
 // 🎨 SHOW CHAT INTERFACE
 function showChatInterface() {
-  loginModal.classList.add('hidden');
+  authModal.classList.add('hidden');
   chatInterface.classList.remove('hidden');
   updateUI();
+}
+
+// 🔐 SHOW AUTH MODAL
+function showAuthModal() {
+  authModal.classList.remove('hidden');
+  chatInterface.classList.add('hidden');
+  loginForm.classList.remove('hidden');
+  registerForm.classList.add('hidden');
+  otpForm.classList.add('hidden');
 }
 
 // 🚪 LOGOUT
@@ -400,6 +637,10 @@ fileInput.addEventListener('change', async (e) => {
 
 // ⚙️ SETTINGS
 settingsBtn.addEventListener('click', () => {
+  // Populate current values
+  document.getElementById('usernameInput').value = state.userName;
+  document.getElementById('displayNameInput').value = state.displayName;
+  document.getElementById('profilePhotoPreview').textContent = state.profilePhoto;
   settingsModal.classList.add('show');
 });
 
@@ -407,10 +648,53 @@ closeSettingsBtn.addEventListener('click', () => {
   settingsModal.classList.remove('show');
 });
 
+// 🎨 EMOJI SELECTION FOR PROFILE
+document.querySelectorAll('.emoji-select').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const emoji = btn.dataset.emoji;
+    document.getElementById('profilePhotoPreview').textContent = emoji;
+    document.getElementById('profilePhotoInput').value = emoji;
+    document.querySelectorAll('.emoji-select').forEach(b => b.style.borderColor = '');
+    btn.style.borderColor = '#00f3ff';
+  });
+});
+
+// 📷 PHOTO UPLOAD HANDLER
+uploadPhotoBtn.addEventListener('click', async () => {
+  const file = profilePhotoFile.files[0];
+  if (!file) {
+    alert('Pilih file terlebih dahulu');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File terlalu besar (max 5MB)');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('profilePhotoPrefix').value = e.target.result;
+    document.getElementById('profilePhotoPreview').style.backgroundImage = `url(${e.target.result})`;
+    document.getElementById('profilePhotoPreview').textContent = '';
+  };
+  reader.readAsDataURL(file);
+});
+
 savSettingsBtn.addEventListener('click', () => {
-  state.userName = document.getElementById('usernameInput').value || state.userName;
   state.displayName = document.getElementById('displayNameInput').value || state.displayName;
   state.profilePhoto = document.getElementById('profilePhotoInput').value || state.profilePhoto;
+
+  // Sync preview
+  const photoPreview = document.getElementById('profilePhotoPreview');
+  if (state.profilePhoto.startsWith('data:')) {
+    photoPreview.style.backgroundImage = `url(${state.profilePhoto})`;
+    photoPreview.textContent = '';
+  } else {
+    photoPreview.style.backgroundImage = '';
+    photoPreview.textContent = state.profilePhoto;
+  }
 
   createSession();
   alert('✅ Pengaturan tersimpan!');
@@ -429,9 +713,79 @@ newChatBtn.addEventListener('click', () => {
   `;
 });
 
+// 🎯 MODE SWITCHER
+modeBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  modeModal.classList.add('show');
+});
+
+// Close mode modal when clicking outside
+modeModal.addEventListener('click', (e) => {
+  if (e.target === modeModal) {
+    modeModal.classList.remove('show');
+  }
+});
+
+// Mode selector buttons
+const modeButtons = {
+  'thinking': modeThinkingBtn,
+  'complex': modeComplexBtn,
+  'coding': modeCodingBtn,
+  'chat': modeChatBtn
+};
+
+Object.entries(modeButtons).forEach(([mode, btn]) => {
+  if (btn) {
+    btn.addEventListener('click', () => {
+      state.responseMode = mode;
+      
+      // Update button styling
+      Object.values(modeButtons).forEach(b => b?.classList.remove('border-cyan-400'));
+      Object.values(modeButtons).forEach(b => b?.classList.add('border-gray-700'));
+      btn.classList.remove('border-gray-700');
+      btn.classList.add('border-cyan-400');
+      
+      // Update mode button text
+      const modeEmojis = {
+        'thinking': '💭 Thinking',
+        'complex': '🔍 Complex',
+        'coding': '💻 Coding',
+        'chat': '💬 Chat'
+      };
+      modeBtn.textContent = modeEmojis[mode];
+      
+      modeModal.classList.remove('show');
+    });
+  }
+});
+
 function saveConversations() {
   localStorage.setItem('conversations', JSON.stringify(state.conversations));
+  localStorage.setItem('conversationTitles', JSON.stringify(state.conversationTitles));
   localStorage.setItem('currentConversationId', state.currentConversationId);
+}
+
+// 🏷️ AUTO-GENERATE CONVERSATION TITLE
+function generateConversationTitle(conversationId) {
+  const messages = state.conversations[conversationId] || [];
+  if (messages.length === 0) return 'Chat tanpa judul';
+
+  const firstUserMessage = messages.find(m => m.role === 'user');
+  if (!firstUserMessage) return 'Chat tanpa judul';
+
+  // Extract first 3-4 words from the first message
+  const words = firstUserMessage.content.trim().split(/\s+/).slice(0, 4);
+  let title = words.join(' ');
+
+  // Clean up if it's too long
+  if (title.length > 40) {
+    title = title.substring(0, 40) + '...';
+  }
+
+  // Remove file markers if present
+  title = title.replace(/\[FILE:.*?\]/, '').trim();
+
+  return title || 'Chat tanpa judul';
 }
 
 function renderConversationHistory() {
@@ -443,19 +797,27 @@ function renderConversationHistory() {
   }
 
   historyContainer.innerHTML = conversations.map(([id, messages]) => {
-    const firstMessage = messages[0]?.content?.substring(0, 30) + '...' || 'Chat tanpa judul';
+    // Use auto-generated or stored title
+    let title = state.conversationTitles[id];
+    if (!title) {
+      title = generateConversationTitle(id);
+      state.conversationTitles[id] = title;
+    }
+
     const isActive = state.currentConversationId === id;
     return `
       <button 
         onclick="loadConversation('${id}')" 
-        class="w-full text-left px-3 py-2 text-sm rounded ${
-          isActive ? 'bg-green-900 text-green-300' : 'bg-gray-900 hover:bg-gray-800'
-        } truncate"
-        title="${firstMessage}">
-        💬 ${firstMessage}
+        class="history-item ${isActive ? 'active' : ''}"
+        title="${title}"
+      >
+        <span class="history-title">💬 ${title}</span>
+        <span class="history-time">→</span>
       </button>
     `;
   }).join('');
+
+  saveConversations();
 }
 
 function loadConversation(conversationId) {

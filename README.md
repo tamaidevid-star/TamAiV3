@@ -2,6 +2,19 @@
 
 Aplikasi Full-Stack AI dengan integrasi OpenRouter, Google OAuth, dan Email OTP Authentication.
 
+## 📖 Quick Navigation
+
+👉 **Ingin langsung mencoba?** → [QUICKSTART.md](QUICKSTART.md) ⚡
+
+📚 **Dokumentasi Lengkap:**
+- [QUICKSTART.md](QUICKSTART.md) - Setup & mulai dalam 5 menit
+- [AUTHENTICATION_FLOW.md](AUTHENTICATION_FLOW.md) - Cara kerja sistem login
+- [API.md](API.md) - Semua endpoint API
+- [IMPLEMENTATION.md](IMPLEMENTATION.md) - Detail teknis fitur
+- [SETUP.md](SETUP.md) - Setup detail environment
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Solusi masalah umum
+- [TEST_PLAN.md](TEST_PLAN.md) - Testing checklist
+
 ## ✨ Features
 
 - 🔐 **Dual Authentication**: Google OAuth + Email OTP
