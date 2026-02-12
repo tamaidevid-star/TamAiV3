@@ -2,8 +2,8 @@
 const state = {
   sessionToken: localStorage.getItem('sessionToken'),
   userEmail: localStorage.getItem('userEmail'),
-  userName: localStorage.getItem('userName') || 'Tuan Tama',
-  displayName: localStorage.getItem('displayName') || 'Tuan Tama',
+  userName: localStorage.getItem('userName') || 'tuan',
+  displayName: localStorage.getItem('displayName') || 'Tuan',
   profilePhoto: localStorage.getItem('profilePhoto') || '👨‍💻',
   userId: localStorage.getItem('userId'),
   conversations: JSON.parse(localStorage.getItem('conversations')) || {},
@@ -126,29 +126,80 @@ registerPhotoFile.addEventListener('change', (e) => {
 });
 
 // 🔐 GOOGLE OAUTH SETUP
+// 🔐 GOOGLE OAUTH SETUP
 function setupGoogleOAuth() {
-  window.google.accounts.id.initialize({
-    client_id: '164055469439-65jpo9bkenifr28df97i6l4g5vlvfiem.apps.googleusercontent.com',
-    callback: handleGoogleSignIn
-  });
+  // Check if Google API is loaded
+  if (!window.google) {
+    console.warn('⚠️ Google Sign-In API not loaded yet');
+    setTimeout(setupGoogleOAuth, 500); // Retry after 500ms
+    return;
+  }
 
-  // Add click handler to custom Google button
-  document.getElementById('googleSignInBtn')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        window.google.accounts.id.renderButton(
-          document.getElementById('googleSignInBtn'),
-          {
-            theme: 'dark',
-            size: 'large',
-            width: '100%'
-          }
-        );
-      }
+  try {
+    window.google.accounts.id.initialize({
+      client_id: '164055469439-65jpo9bkenifr28df97i6l4g5vlvfiem.apps.googleusercontent.com',
+      callback: handleGoogleSignIn
     });
-  });
+
+    // Add click handler to custom Google button
+    const googleBtn = document.getElementById('googleSignInBtn');
+    if (googleBtn) {
+      googleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Trigger Google Sign-In prompt
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            console.log('📋 Google prompt dismissed, trying popup...');
+            // Fallback: Use popup instead
+            window.google.accounts.id.renderButton(googleBtn, {
+              type: 'standard',
+              theme: 'dark',
+              size: 'large',
+              width: '100%'
+            });
+          }
+        });
+      });
+    }
+  } catch (error) {
+    console.error('❌ Google OAuth setup error:', error);
+  }
 }
+
+// Simple client-side signIn helper (falls back to server-side OAuth redirect)
+function signIn(provider) {
+  if (provider === 'google') {
+    // Prefer server-side redirect which handles callback
+    window.location.href = '/api/auth/google';
+  }
+}
+
+// If OAuth returned a sessionToken in URL, save to localStorage and clean URL
+function handleOAuthRedirect() {
+  try {
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get('sessionToken');
+    if (token) {
+      localStorage.setItem('sessionToken', token);
+      // optionally remove token from URL
+      url.searchParams.delete('sessionToken');
+      window.history.replaceState({}, document.title, url.pathname + url.search);
+      // Reload state
+      state.sessionToken = token;
+      initializeApp();
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+// Attach direct click handler to google button to call signIn
+document.addEventListener('DOMContentLoaded', () => {
+  const googleBtn = document.getElementById('googleSignInBtn');
+  if (googleBtn) googleBtn.addEventListener('click', (e) => { e.preventDefault(); signIn('google'); });
+  // handle OAuth redirect token if present
+  handleOAuthRedirect();
+});
 
 // 📧 GOOGLE SIGN-IN HANDLER
 async function handleGoogleSignIn(response) {

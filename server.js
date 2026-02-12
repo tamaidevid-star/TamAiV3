@@ -10,6 +10,14 @@ import axios from 'axios';
 
 dotenv.config();
 
+// Warn if critical env vars missing
+if (!process.env.OPENROUTER_API_KEY) {
+  console.warn('⚠️ OPENROUTER_API_KEY is not set in .env');
+}
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.warn('⚠️ GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set in .env');
+}
+
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -93,7 +101,7 @@ app.post('/api/send-otp', async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; background-color: #000000; padding: 20px; border-radius: 10px; color: #ffffff;">
           <h2 style="color: #00ff00;">TamAi v3 🚀</h2>
-          <p>Halo, Tuan Tama!</p>
+          <p>Halo, Tuan!</p>
           <p>Kode OTP Anda adalah:</p>
           <h1 style="color: #00ff00; font-size: 36px; letter-spacing: 2px; margin: 20px 0;">${otp}</h1>
           <p>Kode ini berlaku selama 10 menit. Jangan bagikan dengan siapa pun.</p>
@@ -274,7 +282,7 @@ app.post('/api/register', (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; background-color: #000000; padding: 20px; border-radius: 10px; color: #ffffff;">
           <h2 style="color: #00ff00;">TamAi v3 🚀</h2>
-          <p>Halo ${displayName}!</p>
+          <p>Halo, Tuan!</p>
           <p>Terima kasih telah mendaftar. Kode OTP Anda untuk verifikasi email adalah:</p>
           <h1 style="color: #00ff00; font-size: 36px; letter-spacing: 2px; margin: 20px 0;">${otp}</h1>
           <p>Kode ini berlaku selama 10 menit. Jangan bagikan dengan siapa pun.</p>
@@ -480,14 +488,14 @@ app.post('/api/send-message', express.json({ limit: '50mb' }), async (req, res) 
 
       response.data.on('error', (error) => {
         console.error('Stream error:', error);
-        res.write(`data: ${JSON.stringify({ error: 'Sistem sedang sibuk, Tuan Tama!' })}\n\n`);
+        res.write(`data: ${JSON.stringify({ error: 'Sistem sedang sibuk, Tuan!' })}\n\n`);
         res.end();
       });
     } catch (apiError) {
       console.error('OpenRouter API error:', apiError);
       
       if (apiError.response?.status === 429) {
-        res.write(`data: ${JSON.stringify({ error: 'Sistem sedang sibuk, Tuan Tama! (API rate limit tercapai)' })}\n\n`);
+        res.write(`data: ${JSON.stringify({ error: 'Sistem sedang sibuk, Tuan! (API rate limit tercapai)' })}\n\n`);
       } else if (apiError.response?.status === 401) {
         res.write(`data: ${JSON.stringify({ error: 'API Key tidak valid' })}\n\n`);
       } else {
@@ -541,6 +549,87 @@ app.get('/api/file-content/:filename', (req, res) => {
   } catch (error) {
     console.error('Error reading file:', error);
     res.status(500).json({ error: 'Gagal membaca file' });
+  }
+});
+
+// -------------------------
+// Google OAuth (simple server-side flow)
+// -------------------------
+app.get('/api/auth/google', (req, res) => {
+  const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+  const redirectUri = `${appUrl}/api/auth/google/callback`;
+  const scope = 'openid email profile';
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(process.env.GOOGLE_CLIENT_ID)}&response_type=code&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri)}&access_type=offline&prompt=consent`;
+  return res.redirect(url);
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  try {
+    const code = req.query.code;
+    if (!code) return res.status(400).send('Missing code');
+
+    const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const redirectUri = `${appUrl}/api/auth/google/callback`;
+
+    // Exchange code for tokens
+    const params = new URLSearchParams();
+    params.append('code', code);
+    params.append('client_id', process.env.GOOGLE_CLIENT_ID);
+    params.append('client_secret', process.env.GOOGLE_CLIENT_SECRET);
+    params.append('redirect_uri', redirectUri);
+    params.append('grant_type', 'authorization_code');
+
+    const tokenResp = await axios.post('https://oauth2.googleapis.com/token', params.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    const idToken = tokenResp.data.id_token;
+    // Decode JWT payload
+    const parts = idToken.split('.');
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+
+    const email = payload.email;
+    const name = payload.name;
+    const picture = payload.picture;
+
+    // Find or create user
+    if (!sessionStorage.has('users')) sessionStorage.set('users', new Map());
+    const users = sessionStorage.get('users');
+
+    let user = users.get(email);
+    if (!user) {
+      const userId = 'user_' + Date.now();
+      user = {
+        userId,
+        username: email.split('@')[0],
+        email,
+        password: '',
+        displayName: name || email.split('@')[0],
+        profilePhoto: picture || 'default-avatar.jpg',
+        createdAt: Date.now(),
+        verified: true
+      };
+      users.set(email, user);
+    }
+
+    // Create session token
+    const sessionToken = generateSessionToken();
+    sessionStorage.set(sessionToken, {
+      userId: user.userId,
+      email: user.email,
+      username: user.username,
+      displayName: user.displayName,
+      profilePhoto: user.profilePhoto,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000
+    });
+
+    // Redirect to app with token
+    const redirectToClient = `${process.env.APP_URL || 'http://localhost:3000'}?sessionToken=${sessionToken}`;
+    return res.redirect(redirectToClient);
+  } catch (error) {
+    console.error('Google OAuth callback error:', error);
+    return res.status(500).send('Google OAuth error');
   }
 });
 
